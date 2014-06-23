@@ -20,3 +20,12 @@ settings.add({
   value: 'en-gb'
 });
 ```
+
+--------------
+
+####Compatibility
+<img src="http://www.w3schools.com/images/compatible_ie.gif" title="EI10+" /> 
+<img src="http://www.w3schools.com/images/compatible_firefox.gif" title="Firefox" /> 
+<img src="http://www.w3schools.com/images/compatible_opera.gif" title="Opera" /> 
+<img src="http://www.w3schools.com/images/compatible_chrome.gif" title="Chrome" /> 
+<img src="http://www.w3schools.com/images/compatible_safari.gif" title="Safari" />
