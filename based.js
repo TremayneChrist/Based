@@ -12,7 +12,7 @@ var db;
   // Database Table object
   var DatabaseTable = function(name, columns, options) {
 
-    if (columns instanceof Object === false) throw 'Columns format is invalid';
+    if (!(typeof name === 'string' && columns instanceof Object)) throw 'Format is invalid';
 
     var id = 0;
 
