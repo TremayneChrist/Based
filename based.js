@@ -6,13 +6,29 @@ var db;
 (function() {
 
   // Invoker used for calling special commands
-  var invoker = {};
+  var invoker = {},
+
+  // Error codes and summaries
+  errors = {
+    '0': 'Generic Error',
+    '1': 'System Error',
+    '1001': 'Table creation error',
+    '1002': 'Table modification error',
+    '2001': 'Filter Error'
+  },
+
+  // Error creator
+  error = function (code, message) {
+    var e = errors[code.toString()];
+    if (e === undefined) throw error(1, 'Error code not found');
+    throw '[' + code + '] ' + e + ' - ' + message;
+  }
 
 
   // Database Table object
   var DatabaseTable = function(name, columns, options) {
 
-    if (!(typeof name === 'string' && columns instanceof Object)) throw 'Format is invalid';
+    if (!(typeof name === 'string' && columns instanceof Object)) error(1001, 'Format is invalid');
 
     var id = 0;
 
@@ -38,11 +54,11 @@ var db;
 
     if (where(columns, {
       id: true
-    }).length > 1) throw 'You can only have one id column';
+    }).length > 1) error(1001, 'You can only have one id column');
 
     if (where(columns, {
       primaryKey: true
-    }).length > 1) throw 'You can only have one primary key column';
+    }).length > 1) error(1001, 'You can only have one primary key column');
 
     for (var key in columns) {
       this.columns[key] = {
@@ -68,14 +84,14 @@ var db;
 
       doDbTasks(this);
 
-      if (item instanceof Object === false || item instanceof Array === true) throw 'Item format is invalid';
+      if (item instanceof Object === false || item instanceof Array === true) error(1002, 'Item format is invalid');
       for (var key in this.columns) {
 
         // Is the column name supported?
-        if (this.columnNames.indexOf(key) == -1) throw 'Table does not support this entry [' + key + ']';
+        if (this.columnNames.indexOf(key) == -1) error(1002, 'Table does not support this entry [' + key + ']');
 
         if (this.columns[key].primaryKey) {
-          if (this.primaryKeys.indexOf(item[key]) != -1) throw 'An item with the same primary key has already been added';
+          if (this.primaryKeys.indexOf(item[key]) != -1) error(1002, 'An item with the same primary key has already been added');
           this.primaryKeys.push(item[key]);
         }
 
@@ -85,7 +101,7 @@ var db;
             this.index[item[key].toString()] = item;
           }
         } else {
-          if (this.columns[key].id && item[key] !== undefined) throw 'Column [' + key + '] cannot be set as it is an ID column';
+          if (this.columns[key].id && item[key] !== undefined) error(1002, 'Column [' + key + '] cannot be set as it is an ID column');
           if (this.columns[key].id) {
             var id = this.getNextId(invoker);
             item[key] = id;
@@ -94,10 +110,11 @@ var db;
         }
 
         // Is the field required?
-        if (this.columns[key].required && isUndefinedOrNull(item[key])) throw '[' + key + '] is a required field';
+        if (this.columns[key].required && isUndefinedOrNull(item[key])) error(1002, '[' + key + '] is a required field');
 
         // Is the type correct?
-        if (item[key] !== undefined && typeof item[key] != typeof this.columns[key].type() && this.columns[key].type != Object) throw '[' + key + '] was an unexpected type';
+        if (item[key] !== undefined && typeof item[key] != typeof this.columns[key].type() && this.columns[key].type != Object)
+          error(1002, '[' + key + '] was an unexpected type');
         item[key] = item[key]; // Set the property key whether it is undefined or no
       }
       this.items.push(item);
@@ -162,6 +179,7 @@ var db;
     }
   };
 
+
   // Table result object
   var TableResult = function() {};
 
@@ -176,7 +194,7 @@ var db;
   };
 
   TableResult.prototype.forEach = function(callback) {
-    if (typeof callback !== 'function') throw 'Missing argument';
+    if (typeof callback !== 'function') error(0, 'Missing argument');
     for (var i = 0; i < this.length; i++) {
       callback(this[i], i);
     }
@@ -196,6 +214,7 @@ var db;
 
   function doDbTasks(database) {
     clearTimeout(dbTaskTimer);
+    database.size = '...';
     dbTaskTimer = setTimeout(function() {
       dbTaskWorker.onmessage = function(e) {
         database.size = (e.data / 1024).toFixed(2) + ' KB';
@@ -204,19 +223,19 @@ var db;
         id: database.getId(invoker),
         items: database.items
       }));
-    }, 2000);
+    }, 50);
   }
 
-  function byteCount(s) {
-    return encodeURI(s).split(/%..|./).length - 1;
-  }
+
+  /* HELPERS...
+  --------------------------------------*/
 
   function localStorageSize() {
     var size = 0;
     for (var key in localStorage) {
-      size += byteCount(localStorage[key]);
+      size += encodeURI(localStorage[key]).split(/%..|./).length - 1;
     }
-    return Math.round(size / 1024) + ' KB';
+    return (size / 1024).toFixed(2) + ' KB';
   }
 
   function isUndefinedOrNull(obj) {
@@ -232,8 +251,8 @@ var db;
   }
 
   function where(obj, query, value) {
-    if (obj instanceof Object === false) throw 'Can only query objects';
-    if (!(query instanceof Object || typeof query === 'string')) throw 'Query is invalid';
+    if (obj instanceof Object === false) error(2001, 'Can only query objects');
+    if (!(query instanceof Object || typeof query === 'string')) error(2001, 'Query is invalid');
 
     var q, match = false,
       result = new TableResult();
