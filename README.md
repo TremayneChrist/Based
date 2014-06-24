@@ -1,8 +1,3 @@
-#### Under Development
-Based JS is not currently ready for use, however, feel free to test it out as many features are supported!
-
-----------------
-
 #Based JS
 
 Client-side JavaScript database
@@ -11,9 +6,9 @@ Client-side JavaScript database
 
 Based JS is an easy to use client-side database which enables fast and manageable data handling for web applications. If required, data can also be persistent with Based's local storage integration.
 
-Below is a simple example of how to setup a new database table...
+####Creating a table
 
-We call `db.create` and pass in two parameters. The first, is the table name which will be used to store and retrieve data from the browser storage. Secondly we have the table schema. Here we set the column names and properties.
+To create a new database table, we call `db.create` and pass in two parameters. The first, is the table name which will be used to store and retrieve data from the browser storage. Secondly we have the table schema; here we set the column names and properties.
 
 - __type__: Supported data type of the column. `String`, `Boolean`, `Number`, `Array`, `Object` etc.
 - __primaryKey__: Whether this column should be used as the primary key. Column cannot have more than one of the same value.
