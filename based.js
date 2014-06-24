@@ -8,24 +8,24 @@ var db;
   // Invoker used for calling special commands
   var invoker = {},
 
-  // Error codes and summaries
-  errors = {
-    '0': 'Generic Error',
-    '1': 'System Error',
-    '1001': 'Table creation error',
-    '1002': 'Table modification error',
-    '2001': 'Filter Error'
-  },
+    // Error codes and summaries
+    errors = {
+      '0': 'Generic Error',
+      '1': 'System Error',
+      '1001': 'Table creation error',
+      '1002': 'Table modification error',
+      '2001': 'Filter Error'
+    },
 
-  // Error creator
-  error = function (code, message) {
-    var e = errors[code.toString()];
-    if (e === undefined) throw error(1, 'Error code not found');
-    throw '[' + code + '] ' + e + ' - ' + message;
-  }
+    // Error creator
+    error = function(code, message) {
+      var e = errors[code.toString()];
+      if (e === undefined) throw error(1, 'Error code not found');
+      throw '[' + code + '] ' + e + ' - ' + message;
+    };
 
 
-  // Database Table object
+    // Database Table object
   var DatabaseTable = function(name, columns, options) {
 
     if (!(typeof name === 'string' && columns instanceof Object)) error(1001, 'Format is invalid');
@@ -71,6 +71,8 @@ var db;
       this.columnNames.push(key);
     }
 
+    doDbTasks(this);
+
     // Get any data from local storage
     this.sync(true);
   };
@@ -82,17 +84,13 @@ var db;
     // Add an item to the database
     add: function(item, _invoker) {
 
-      doDbTasks(this);
+      // Check if we can add the item
+      validateEntry.bind(this)(item, _invoker);
 
-      if (item instanceof Object === false || item instanceof Array === true) error(1002, 'Item format is invalid');
       for (var key in this.columns) {
 
-        // Is the column name supported?
-        if (this.columnNames.indexOf(key) == -1) error(1002, 'Table does not support this entry [' + key + ']');
-
         if (this.columns[key].primaryKey) {
-          if (this.primaryKeys.indexOf(item[key]) != -1) error(1002, 'An item with the same primary key has already been added');
-          this.primaryKeys.push(item[key]);
+          this.primaryKeys[item[key]] = 0;
         }
 
         // Check if we are trying to set an ID column
@@ -101,27 +99,19 @@ var db;
             this.index[item[key].toString()] = item;
           }
         } else {
-          if (this.columns[key].id && item[key] !== undefined) error(1002, 'Column [' + key + '] cannot be set as it is an ID column');
           if (this.columns[key].id) {
             var id = this.getNextId(invoker);
             item[key] = id;
             this.index[id.toString()] = item;
           }
         }
-
-        // Is the field required?
-        if (this.columns[key].required && isUndefinedOrNull(item[key])) error(1002, '[' + key + '] is a required field');
-
-        // Is the type correct?
-        if (item[key] !== undefined && typeof item[key] != typeof this.columns[key].type() && this.columns[key].type != Object)
-          error(1002, '[' + key + '] was an unexpected type');
-        item[key] = item[key]; // Set the property key whether it is undefined or no
       }
+
       this.items.push(item);
     },
 
     // Return a subset based on a query
-    get: function(query) {
+    get: function(query, value, _invoker) {
 
       doDbTasks(this);
 
@@ -131,17 +121,35 @@ var db;
         }).first();
         if (idCol) {
           var result = new TableResult();
-          result.push(this.index[query.toString()]);
+          result.push(_invoker === invoker ? this.index[query.toString()] :
+            clone(this.index[query.toString()], true));
           return result;
         }
       }
-      return where(this.items, query);
+      return where(this.items, query, value, _invoker);
+    },
+
+    // Update an item in the table
+    update: function(query, data) {
+
+      var _this = this;
+
+      this.get(query, null, invoker).forEach(function(item) {
+
+        // Check if we can add the item
+        validateEntry.bind(_this)(data);
+
+        data = clone(data, true);
+
+        for (var key in data) {
+          item[key] = data[key];
+        }
+
+      });
     },
 
     // Remove an item from the table
     delete: function(query) {
-
-      doDbTasks(this);
 
       var _this = this;
       this.get(query).forEach(function(item) {
@@ -176,6 +184,10 @@ var db;
             '\nYour local storage is currently using ' + localStorageSize());
         }
       }
+    },
+
+    unsync: function () {
+      localStorage.removeItem('table_' + this.name);
     }
   };
 
@@ -209,26 +221,53 @@ var db;
   };
 
   var dbTaskTimer, dbTaskWorker = new Worker(
-    window.URL.createObjectURL(
-    new Blob(['onmessage = function (e) { self.postMessage(encodeURI(e.data).split(/%..|./).length - 1); }'])));
+      window.URL.createObjectURL(
+        new Blob(['onmessage = function (e) { self.postMessage(encodeURI(e.data).split(/%..|./).length - 1); }'])));
 
   function doDbTasks(database) {
     clearTimeout(dbTaskTimer);
-    database.size = '...';
-    dbTaskTimer = setTimeout(function() {
-      dbTaskWorker.onmessage = function(e) {
-        database.size = (e.data / 1024).toFixed(2) + ' KB';
-      };
-      dbTaskWorker.postMessage(JSON.stringify({
-        id: database.getId(invoker),
-        items: database.items
-      }));
-    }, 50);
+    dbTaskWorker.onmessage = function(e) {
+      database.size = (e.data / 1024).toFixed(2) + ' KB';
+      dbTaskTimer = setTimeout(function() {
+        doDbTasks(database);
+      }, 5000);
+    };
+    dbTaskWorker.postMessage(JSON.stringify({
+      id: database.getId(invoker),
+      items: database.items
+    }));
   }
 
 
   /* HELPERS...
   --------------------------------------*/
+
+  function validateEntry(item, _invoker) {
+
+    if (item instanceof Object === false || item instanceof Array === true) error(1002, 'Item format is invalid');
+
+    for (var key in item) {
+
+      // Is the column name supported?
+      if (this.columnNames.indexOf(key) == -1)
+        error(1002, 'Table does not support this entry [' + key + ']');
+
+      if (this.columns[key].primaryKey && this.primaryKeys.hasOwnProperty(item[key]))
+        error(1002, 'An item with the same primary key has already been added');
+
+      // Check if we are trying to set an ID column
+      if (_invoker !== invoker && this.columns[key].id && item[key] !== undefined)
+        error(1002, 'Column [' + key + '] cannot be set as it is an ID column');
+
+      // Is the field required?
+      if (this.columns[key].required && isUndefinedOrNull(item[key]))
+        error(1002, '[' + key + '] is a required field');
+
+      // Is the type correct?
+      if (item[key] !== undefined && typeof item[key] != typeof this.columns[key].type() && this.columns[key].type != Object)
+        error(1002, '[' + key + '] was an unexpected type');
+    }
+  }
 
   function localStorageSize() {
     var size = 0;
@@ -250,7 +289,26 @@ var db;
     return false;
   }
 
-  function where(obj, query, value) {
+  function clone(obj, deep) {
+
+    if (typeof obj !== 'object')
+      error(1, 'Can only clone objects and/or arrays');
+
+    var result = obj instanceof Array ? [] : {};
+
+    for (var key in obj) {
+      if (typeof obj[key] === 'object' && deep === true) {
+        result[key] = clone(obj[key], deep);
+      } else {
+        result[key] = obj[key];
+      }
+    }
+
+    return result;
+
+  };
+
+  function where(obj, query, value, _invoker) {
     if (obj instanceof Object === false) error(2001, 'Can only query objects');
     if (!(query instanceof Object || typeof query === 'string')) error(2001, 'Query is invalid');
 
@@ -268,9 +326,8 @@ var db;
       for (var q in query)
         if (obj[item][q] != query[q])
           match = false;
-      if (match) result.push(obj[item]);
+      if (match) result.push(_invoker === invoker ? obj[item] : clone(obj[item], true));
     }
-
     return result;
   }
 
