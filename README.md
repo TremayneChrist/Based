@@ -139,7 +139,7 @@ media.unsync();
 --------------
 
 ####Compatibility
-<img src="http://www.w3schools.com/images/compatible_ie.gif" title="EI10+" /> 
+<img src="http://www.w3schools.com/images/compatible_ie.gif" title="IE10+" /> 
 <img src="http://www.w3schools.com/images/compatible_firefox.gif" title="Firefox" /> 
 <img src="http://www.w3schools.com/images/compatible_opera.gif" title="Opera" /> 
 <img src="http://www.w3schools.com/images/compatible_chrome.gif" title="Chrome" /> 
