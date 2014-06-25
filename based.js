@@ -108,6 +108,8 @@ var db;
       }
 
       this.items.push(item);
+
+      return clone(item, true);
     },
 
     // Return a subset based on a query
