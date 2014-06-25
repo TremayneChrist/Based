@@ -131,6 +131,19 @@ var db;
       return where(this.items, query, value, _invoker);
     },
 
+    // Return all items
+    all: function () {
+
+      var result = new TableResult(),
+      itemClone = clone(this.items, true);
+
+      for (var i = 0; i < itemClone.length; i++)
+        result.push(itemClone[i]);
+
+      return result;
+
+    },
+
     // Update an item in the table
     update: function(query, data) {
 
