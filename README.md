@@ -80,6 +80,24 @@ media.get({ name: 'Sing', artist: 'Ed Sheeran' });
 
 ```
 
+You can also return all entries by calling `all()`
+
+```javascript
+
+media.all(); // returns all entries in the table
+
+// Example...
+TableResult[{
+  id: 0,
+  name: 'Sing',
+  album: 'X,
+  artist: 'Ed Sheeran,
+  length: 235,
+  genre: 'Pop'
+}]
+
+```
+
 ####Updating a value
 
 In order to accurately update a value we must know its id. This is so we know we will only be updating a singular result.
