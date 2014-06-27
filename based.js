@@ -231,24 +231,6 @@ var db;
     }
   };
 
-  var dbTaskTimer, dbTaskWorker = new Worker(
-      window.URL.createObjectURL(
-        new Blob(['onmessage = function (e) { self.postMessage(encodeURI(e.data).split(/%..|./).length - 1); }'])));
-
-  function doDbTasks(database) {
-    clearTimeout(dbTaskTimer);
-    dbTaskWorker.onmessage = function(e) {
-      database.size = (e.data / 1024).toFixed(2) + ' KB';
-      dbTaskTimer = setTimeout(function() {
-        doDbTasks(database);
-      }, 5000);
-    };
-    dbTaskWorker.postMessage(JSON.stringify({
-      id: database.getId(invoker),
-      items: database.items
-    }));
-  }
-
 
   /* HELPERS...
   --------------------------------------*/
