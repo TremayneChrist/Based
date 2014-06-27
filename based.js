@@ -71,8 +71,6 @@ var db;
       this.columnNames.push(key);
     }
 
-    doDbTasks(this);
-
     // Get any data from local storage
     this.sync(true);
   };
@@ -114,8 +112,6 @@ var db;
 
     // Return a subset based on a query
     get: function(query, value, _invoker) {
-
-      doDbTasks(this);
 
       if (typeof query === 'number') {
         var idCol = where(this.columns, {
