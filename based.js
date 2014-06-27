@@ -262,7 +262,11 @@ var db;
       // Is the column name supported?
       if (this.columnNames.indexOf(key) == -1)
         error(1002, 'Table does not support this entry [' + key + ']');
+    }
 
+    for (var key in this.columns) {
+
+      // Check if we are adding a duplicate primary key
       if (this.columns[key].primaryKey && this.primaryKeys.hasOwnProperty(item[key]))
         error(1002, 'An item with the same primary key has already been added');
 
