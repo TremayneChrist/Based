@@ -71,8 +71,6 @@ var db;
       this.columnNames.push(key);
     }
 
-    doDbTasks(this);
-
     // Get any data from local storage
     this.sync(true);
   };
@@ -114,8 +112,6 @@ var db;
 
     // Return a subset based on a query
     get: function(query, value, _invoker) {
-
-      doDbTasks(this);
 
       if (typeof query === 'number') {
         var idCol = where(this.columns, {
@@ -234,24 +230,6 @@ var db;
       return new DatabaseTable(name, columns, options);
     }
   };
-
-  var dbTaskTimer, dbTaskWorker = new Worker(
-      window.URL.createObjectURL(
-        new Blob(['onmessage = function (e) { self.postMessage(encodeURI(e.data).split(/%..|./).length - 1); }'])));
-
-  function doDbTasks(database) {
-    clearTimeout(dbTaskTimer);
-    dbTaskWorker.onmessage = function(e) {
-      database.size = (e.data / 1024).toFixed(2) + ' KB';
-      dbTaskTimer = setTimeout(function() {
-        doDbTasks(database);
-      }, 5000);
-    };
-    dbTaskWorker.postMessage(JSON.stringify({
-      id: database.getId(invoker),
-      items: database.items
-    }));
-  }
 
 
   /* HELPERS...
