@@ -1,4 +1,4 @@
-#Based JS
+#Based JS / BasedJS
 
 Client-side JavaScript database
 
