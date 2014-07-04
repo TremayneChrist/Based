@@ -261,7 +261,7 @@ var db;
         error(1002, '[' + key + '] is a required field');
 
       // Is the type correct?
-      if (item[key] !== undefined && typeof item[key] != typeof this.columns[key].type() && this.columns[key].type != Object)
+      if (!isUndefinedOrNull(item[key]) && typeof item[key] != typeof this.columns[key].type() && this.columns[key].type != Object)
         error(1002, '[' + key + '] was an unexpected type');
     }
   }
