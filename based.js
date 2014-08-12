@@ -127,6 +127,10 @@ var db;
       return where(this.items, query, value, _invoker);
     },
 
+    first: function (query, value) {
+      return this.get(query, value).first();
+    },
+
     // Return all items
     all: function () {
 
